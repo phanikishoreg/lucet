@@ -19,6 +19,9 @@ RUN apt-get update \
 	creduce \
 	gcc-multilib \
 	clang-6.0 \
+	llvm-6.0 \
+	llvm-6.0-dev \
+	vim \
 	&& rm -rf /var/lib/apt/lists/*
 
 RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-6.0 100
