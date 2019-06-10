@@ -81,8 +81,7 @@ programs = [
     # Program("gsm", ["-fps", "-c", "./large.au"], 2 ** 15, custom_arguments=["-DSASR", "-Wno-everything", "-DHAS_ERRNO_DECL"]),
 
     Program("mandelbrot", [5000], 2 ** 14),
-    # NOTE: removed unnecessary inclusion of <sys/wait.h> and it worked!
-    # Program("patricia", ["./large.udp"], 2 ** 14),
+    Program("patricia", ["./large.udp"], 2 ** 14),
 
     # FIXME: Even with --reserved-size 4GiB, it shows HeapOutOfBounds! I don't understand what is wrong here!
     # Program("qsort", ["./input_small.dat"], 2 ** 18),
@@ -91,11 +90,13 @@ programs = [
     Program("sha", ["./input_large.asc"], 2 ** 14),
 
     # FIXME: Even with --reserved-size 4GiB, it shows HeapOutOfBounds! I don't understand what is wrong here!
-    # Program("susan", ["./input_large.pgm", "/dev/null", "-s"], 2 ** 19, custom_arguments=["-Wno-everything"]),
+    # Program("susan", ["./input_large.pgm", "./bin/output.txt", "-s"], 2 ** 19, custom_arguments=["-Wno-everything"]),
     Program("stringsearch", [], 2 ** 13),
 
-    # TODO: These programs segfault on my computer...
-    # Program("blowfish", ["e", "input_large.asc", "/dev/null", "1234567890abcdeffedcba0987654321"], 2**14),
+    # NOTE: Modified output to use a regular file instead of /dev/null and it worked for Lucet!
+    Program("blowfish", ["e", "./input_large.asc", "./bin/output.txt", "1234567890abcdeffedcba0987654321"], 2**14),
+
+    # TODO: Uses signals and that is not supported in Lucet-WASI
     # Program("pgp", ['-sa -z "this is a test" -u taustin@eecs.umich.edu testin.txt austin@umich.edu'], 2 ** 14,
     #         custom_arguments=["-DUNIX -D_BSD -DPORTABLE -DUSE_NBIO -DMPORTABLE", "-I.", "-Wno-everything"]),
 ]
