@@ -399,13 +399,20 @@ FILE *f;
  darray_free(&line);
 }
 
-int main PROTO((int argc, char *argv[], char *env[]));
+/* 
+ * Phani: Removed env as Lucet-wasi doesn't seem to recognize main() signature with env in it! 
+ * Link error: 
+ * wasm-ld: warning: function signature mismatch: main
+ * >>> defined as (i32, i32) -> i32 in /tmp/say-27202c.o
+ * >>> defined as (i32, i32, i32) -> i32 in lto.tmp
+ * LucetcError { inner: ErrorMessage { msg: "wasmparser validation rejected module" }
+ */
+int main PROTO((int argc, char *argv[]));
 
 int
-main(argc, argv, env)
+main(argc, argv)
 int argc;
 char *argv[];
-char *env[];        
 {
  program = argv[0];
  argc = audio_init(argc, argv);

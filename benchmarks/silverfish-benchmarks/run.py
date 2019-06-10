@@ -12,19 +12,20 @@ BENCH_ROOT = os.getcwd()
 # Absolute path to the `silverfish` directory
 ROOT_PATH = os.path.dirname(BENCH_ROOT)
 
-# Our special WASM clang is under this wasmception path
+# Lucet WASM compilation and runtime.
 WASM_CLANG = "wasm32-wasi-clang"
 LUCETC = "lucetc-wasi"
 LUCET  = "lucet-wasi"
-
-# These flags are all somewhat important -- see @Others for more information
-#WASM_LINKER_FLAGS = "-Wl,--allow-undefined,-z,stack-size={stack_size},--no-threads,--stack-first,--no-entry,--export-all,--export=main,--export=dummy"
-# Point WASM to our custom libc
-#WASM_SYSROOT_FLAGS = "--sysroot={}/sysroot".format(WASMCEPTION_PATH)
-#WASM_FLAGS = WASM_LINKER_FLAGS + " --target=wasm32-unknown-unknown-wasm -nostartfiles -O3 -flto " + WASM_SYSROOT_FLAGS
+# For some reason, LUCET specification says --min-researved-size is 4MB and --max-reserved-size is 4GB but 
+# the reality is it sets the reserved size of the WASM module to be 4MB and does not expand resulting in
+# HeapOutOfBounds in some applications that are memory hungry!
+#
+# --max-reserved-size param in lucetc-wasi is totally ignored, so anything we set in --min-reserved-size or --reserved-size
+# seem to be what it just goes with!
+RESERVED_HEAP = "32MiB"
 
 # How many times should we run our benchmarks
-RUN_COUNT = 10
+RUN_COUNT = 1
 ENABLE_DEBUG_SYMBOLS = True
 
 
@@ -49,33 +50,49 @@ class Program(object):
 # TODO: Do ghostscript, which has a ton of files
 programs = [
     # Real world program benchmarks
-#    Program("libjpeg", [], 2 ** 15,
-#            custom_arguments=["-Wno-incompatible-library-redeclaration", "-Wno-implicit-function-declaration", "-Wno-shift-negative-value"]),
-#    Program("sqlite", [], 2 ** 15),
+    # FIXME: Does not work because Lucet-WASI does not support tmpfile()
+    # Program("libjpeg", [], 2 ** 15,
+    #         custom_arguments=["-Wno-incompatible-library-redeclaration", "-Wno-implicit-function-declaration", "-Wno-shift-negative-value"]),
+
+    # FIXME: Does not work because it depends on pthreads and Lucet-WASI is single-threaded only 
+    # (wasi-sdk is forced to be single thread!).
+    # Missing support for threads: https://github.com/CraneStation/wasi-libc/tree/master/libc-top-half
+    # Program("sqlite", [], 2 ** 15),
 
     # Synthetic benchmarks
-#    Program("binarytrees", [16], 2 ** 14),
-#    Program("function_pointers", [], 2 ** 14),
-#    Program("matrix_multiply", [], 2 ** 14),
+    Program("binarytrees", [16], 2 ** 14),
+    Program("function_pointers", [], 2 ** 14),
+    Program("matrix_multiply", [], 2 ** 14),
 
     # Benchmark programs
-#    Program("adpcm", ["< ../large.pcm"], 2 ** 14,
-#            custom_arguments=["-Wno-implicit-int", "-Wno-implicit-function-declaration"]),
+    Program("adpcm", ["< ./large.pcm"], 2 ** 14,
+            custom_arguments=["-Wno-implicit-int", "-Wno-implicit-function-declaration"]),
     Program("basic_math", [], 2 ** 14),
-#    Program("bitcount", [2 ** 24], 2 ** 14),
-#    Program("crc", ["../large.pcm"], 2 ** 14, custom_arguments=["-Wno-implicit-int", "-Wno-format"]),
-#    Program("dijkstra", ["../input.dat"], 2 ** 14,
-#            custom_arguments=["-Wno-return-type"]),
-#    Program("fft", [8, 32768], 2 ** 14),
-#    Program("gsm", ["-fps", "-c", "../large.au"], 2 ** 15, custom_arguments=["-DSASR", "-Wno-everything"]),
-#    Program("mandelbrot", [5000], 2 ** 14),
-#    Program("patricia", ["../large.udp"], 2 ** 14),
-#    Program("qsort", ["../input_small.dat"], 2 ** 18),
-#    Program("rsynth", ["-a", "-q", "-o", "/dev/null", "< ../largeinput.txt"], 2**14,
-#            custom_arguments=["-I.", "-Wno-everything", "-I/usr/local/include/"]),
-#    Program("sha", ["../input_large.asc"], 2 ** 14),
-#    Program("susan", ["../input_large.pgm", "/dev/null", "-s"], 2 ** 19, custom_arguments=["-Wno-everything"]),
-#    Program("stringsearch", [], 2 ** 13),
+    Program("bitcount", [2 ** 24], 2 ** 14),
+    Program("crc", ["./large.pcm"], 2 ** 14, custom_arguments=["-Wno-implicit-int", "-Wno-format"]),
+    Program("dijkstra", ["./input.dat"], 2 ** 14,
+            custom_arguments=["-Wno-return-type"]),
+    Program("fft", [8, 32768], 2 ** 14),
+
+    # FIXME: After fixing errno problem with -DHAS_ERRNO_DECL,
+    # LucetcError { inner: ErrorMessage { msg: "Unknown module for symbol `env::signal`" }
+    # From what I read about wasi-libc (based on muslc), does not support signals yet.
+    # https://github.com/CraneStation/wasi-libc/tree/master/libc-top-half
+    # Program("gsm", ["-fps", "-c", "./large.au"], 2 ** 15, custom_arguments=["-DSASR", "-Wno-everything", "-DHAS_ERRNO_DECL"]),
+
+    Program("mandelbrot", [5000], 2 ** 14),
+    # NOTE: removed unnecessary inclusion of <sys/wait.h> and it worked!
+    # Program("patricia", ["./large.udp"], 2 ** 14),
+
+    # FIXME: Even with --reserved-size 4GiB, it shows HeapOutOfBounds! I don't understand what is wrong here!
+    # Program("qsort", ["./input_small.dat"], 2 ** 18),
+    Program("rsynth", ["-a", "-q", "-o", "/dev/null", "< ./largeinput.txt"], 2**14,
+            custom_arguments=["-I.", "-Wno-everything", "-I/usr/local/include/"]),
+    Program("sha", ["./input_large.asc"], 2 ** 14),
+
+    # FIXME: Even with --reserved-size 4GiB, it shows HeapOutOfBounds! I don't understand what is wrong here!
+    # Program("susan", ["./input_large.pgm", "/dev/null", "-s"], 2 ** 19, custom_arguments=["-Wno-everything"]),
+    Program("stringsearch", [], 2 ** 13),
 
     # TODO: These programs segfault on my computer...
     # Program("blowfish", ["e", "input_large.asc", "/dev/null", "1234567890abcdeffedcba0987654321"], 2**14),
@@ -97,39 +114,38 @@ def compile_to_executable(program):
 # Compile the C code in `program`'s directory into WASM
 def compile_to_wasm(program):
     flags = "" #WASM_FLAGS.format(stack_size=program.stack_size)
-    command = "{clang} {flags} {args} -O3 -flto *.c -o bin/{pname}.wasm" \
+    command = "{clang} {flags} {args} -I. -O3 -flto *.c -o bin/{pname}.wasm" \
         .format(clang=WASM_CLANG, flags=flags, args=program.custom_arguments, pname=program.name)
     sp.check_call(command, shell=True, cwd=program.name)
 
 
-# Compile the WASM in `program`'s directory into llvm bytecode
+# Compile the WASM in `program`'s directory into Lucet-C binary 
 def compile_wasm_to_bc(program):
-    command = "{lucetc} bin/{pname}.wasm -o bin/{pname}.so".format(lucetc=LUCETC, pname=program.name)
+    command = "{lucetc} --opt-level 2 bin/{pname}.wasm --output bin/{pname}.so --reserved-size {heap}".format(lucetc=LUCETC, pname=program.name, heap=RESERVED_HEAP)
     sp.check_call(command, shell=True, cwd=program.name)
 
 
-# Execute executable `p` with arguments `args` in directory `dir`
+# Execute executable `p` with arguments `args` in directory 'dir'
 def execute_wasm(p, args, dir):
-    command = "{lucet} {pname} {a}".format(lucet=LUCET, pname=p, a=args)
-    sp.check_call(command, shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+    command = "{lucet} --dir .:. {pname} -- {a}".format(lucet=LUCET, pname=p, a=args)
+    sp.check_call(command, shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL, cwd=dir)
 
 
 # Execute wasi binary 'p' with arguments 'args' in directory 'dir'
 def execute_native(p, args, dir):
     command = p + " " + args
-    sp.check_call(command, shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+    sp.check_call(command, shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL, cwd=dir)
 
 
 # Benchmark the given program's executable
 #   p = the program
 #   name = the human readable name for this version of the executable
 def bench_native(p, name):
-    path = "{broot}/{pname}/bin/".format(broot=BENCH_ROOT, pname=p.name)
-    os.chdir(path)
-#    path = "{broot}/{pname}/bin/{pname}".format(broot=BENCH_ROOT, pname=p.name)
-    command = "execute_native('./{pname}', '{args}', '{dir}')".format(pname=p.name, args=' '.join(map(str, p.parameters)), dir=p.name)
+    path = "{broot}/{pname}/".format(broot=BENCH_ROOT, pname=p.name)
+#    os.chdir(path)
+    command = "execute_native('./bin/{pname}', '{args}', '{dir}')".format(pname=p.name, args=' '.join(map(str, p.parameters)), dir=p.name)
     minval = min(timeit.repeat(command, 'from __main__ import execute_native', number=1, repeat=RUN_COUNT))
-    os.chdir(BENCH_ROOT)
+#    os.chdir(BENCH_ROOT)
     return minval
 
 
@@ -137,11 +153,11 @@ def bench_native(p, name):
 #   p = the program
 #   name = the human readable name for this version of the executable
 def bench_wasm(p, name):
-    path = "{broot}/{pname}/bin/".format(broot=BENCH_ROOT, pname=p.name)
-    os.chdir(path)
-    command = "execute_wasm('{pname}.so', '{args}', '{dir}')".format(pname=p.name, args=' '.join(map(str, p.parameters)), dir=p.name)
+    path = "{broot}/{pname}/".format(broot=BENCH_ROOT, pname=p.name)
+#    os.chdir(path)
+    command = "execute_wasm('./bin/{pname}.so', '{args}', '{dir}')".format(pname=p.name, args=' '.join(map(str, p.parameters)), dir=p.name)
     minval = min(timeit.repeat(command, 'from __main__ import execute_wasm', number=1, repeat=RUN_COUNT))
-    os.chdir(BENCH_ROOT)
+#    os.chdir(BENCH_ROOT)
     return minval
 
 

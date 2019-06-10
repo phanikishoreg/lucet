@@ -41,7 +41,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/wait.h>
+/* Phani: Lucet-WASI does not like you to include <sys/wait.h> */
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
