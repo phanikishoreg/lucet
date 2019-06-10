@@ -25,7 +25,7 @@ LUCET  = "lucet-wasi"
 RESERVED_HEAP = "32MiB"
 
 # How many times should we run our benchmarks
-RUN_COUNT = 1
+RUN_COUNT = 10
 ENABLE_DEBUG_SYMBOLS = True
 
 
@@ -142,24 +142,16 @@ def execute_native(p, args, dir):
 #   p = the program
 #   name = the human readable name for this version of the executable
 def bench_native(p, name):
-    path = "{broot}/{pname}/".format(broot=BENCH_ROOT, pname=p.name)
-#    os.chdir(path)
     command = "execute_native('./bin/{pname}', '{args}', '{dir}')".format(pname=p.name, args=' '.join(map(str, p.parameters)), dir=p.name)
-    minval = min(timeit.repeat(command, 'from __main__ import execute_native', number=1, repeat=RUN_COUNT))
-#    os.chdir(BENCH_ROOT)
-    return minval
+    return min(timeit.repeat(command, 'from __main__ import execute_native', number=1, repeat=RUN_COUNT))
 
 
 # Benchmark the given program's executable
 #   p = the program
 #   name = the human readable name for this version of the executable
 def bench_wasm(p, name):
-    path = "{broot}/{pname}/".format(broot=BENCH_ROOT, pname=p.name)
-#    os.chdir(path)
     command = "execute_wasm('./bin/{pname}.so', '{args}', '{dir}')".format(pname=p.name, args=' '.join(map(str, p.parameters)), dir=p.name)
-    minval = min(timeit.repeat(command, 'from __main__ import execute_wasm', number=1, repeat=RUN_COUNT))
-#    os.chdir(BENCH_ROOT)
-    return minval
+    return min(timeit.repeat(command, 'from __main__ import execute_wasm', number=1, repeat=RUN_COUNT))
 
 
 # Output a run's execution time, telling us how much faster or slower it is
