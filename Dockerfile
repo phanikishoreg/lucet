@@ -21,10 +21,13 @@ RUN apt-get update \
 	clang-6.0 \
 	llvm-6.0 \
 	llvm-6.0-dev \
+	python3-dev \
+	python3-pip \
 	vim \
 	&& rm -rf /var/lib/apt/lists/*
 
 RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-6.0 100
+RUN pip3 install numpy
 
 # Setting a consistent LD_LIBRARY_PATH across the entire environment prevents unnecessary Cargo
 # rebuilds.
